@@ -8,7 +8,7 @@ import {Actions} from "@ds/actions/Actions.sol";
 import {Node, Schema, State} from "@ds/schema/Schema.sol";
 import {ItemUtils, ItemConfig} from "@ds/utils/ItemUtils.sol";
 import {BuildingUtils, BuildingConfig, Material, Input, Output} from "@ds/utils/BuildingUtils.sol";
-import {HammerFactory} from "../src/HammerFactory.sol";
+import {FountainOfYouth} from "../src/FountainOfYouth.sol";
 
 using Schema for State;
 
@@ -51,72 +51,69 @@ contract Deployer is Script {
         // When deploying to local testnet instances of the game (localhost)
         // you can probably leave this as the default of 45342312 as you are
         // unlikely to clash with yourself
-        uint64 extensionID = uint64(vm.envUint("BUILDING_KIND_EXTENSION_ID"));
+        // uint64 extensionID = uint64(vm.envUint("BUILDING_KIND_EXTENSION_ID"));
+        uint64 extensionID = 9223372036854775806;
 
         // connect as the player...
         vm.startBroadcast(playerDeploymentKey);
 
-        // deploy the hammer and hammer factory
-        bytes24 hammerItem = registerHammerItem(ds, extensionID);
-        bytes24 hammerFactory = registerHammerFactory(ds, extensionID, hammerItem);
+        bytes24 elixirItem = registerElixirItem(ds, extensionID);
+        bytes24 fountainOfYouthBuilding = registerFountainOfYouth(ds, extensionID, elixirItem);
 
         // dump deployed ids
-        console2.log("ItemKind", uint256(bytes32(hammerItem)));
-        console2.log("BuildingKind", uint256(bytes32(hammerFactory)));
-
+        console2.log("ItemKind", uint256(bytes32(elixirItem)));
+        console2.log("BuildingKind", uint256(bytes32(fountainOfYouthBuilding)));
+        
         vm.stopBroadcast();
     }
-
-    // register a new item id
-    function registerHammerItem(Game ds, uint64 extensionID) public returns (bytes24 itemKind) {
-        return ItemUtils.register(
-            ds,
-            ItemConfig({
-                id: extensionID,
-                name: "Hammer",
-                icon: "15-38",
-                greenGoo: 10, //In combat, Green Goo increases life
-                blueGoo: 0, //In combat, Blue Goo increases defense
-                redGoo: 6, //In combat, Red Goo increases attack
-                stackable: false,
-                implementation: address(0),
-                plugin: ""
-            })
-        );
+    
+    // Register a new item id
+    // This is where we define the details of the pizza
+    function registerElixirItem(Game ds, uint64 extensionID) public returns (bytes24 itemKind) {
+        return ItemUtils.register(ds, ItemConfig({
+            id: extensionID,
+            name: "Elixir Of Life",
+            icon: "18-4",
+            greenGoo: 400, //In combat, Green Goo increases life
+            blueGoo: 0, //In combat, Blue Goo increases defense
+            redGoo: 0, //In combat, Red Goo increases attack
+            stackable: false,
+            implementation: address(0),
+            plugin: ""
+        }));
     }
 
-    // register a new
-    function registerHammerFactory(Game ds, uint64 extensionID, bytes24 hammer) public returns (bytes24 buildingKind) {
-        // find the base item ids we will use as inputs for our hammer factory
+    function registerFountainOfYouth(Game ds, uint64 extensionID, bytes24 elixirItem) public returns (bytes24 buildingKind) {
+
+        // find the base item ids we will use as inputs for our Pizzeria
         bytes24 none = 0x0;
         bytes24 glassGreenGoo = ItemUtils.GlassGreenGoo();
         bytes24 beakerBlueGoo = ItemUtils.BeakerBlueGoo();
         bytes24 flaskRedGoo = ItemUtils.FlaskRedGoo();
+        bytes24 reallyGreenGoo = 0x6a7a67f00000006600000001000000c80000000000000000;
 
         // register a new building kind
-        return BuildingUtils.register(
-            ds,
-            BuildingConfig({
-                id: extensionID,
-                name: "Hammer Factory",
-                materials: [
-                    Material({quantity: 10, item: glassGreenGoo}), // these are what it costs to construct the factory
-                    Material({quantity: 10, item: beakerBlueGoo}),
-                    Material({quantity: 10, item: flaskRedGoo}),
-                    Material({quantity: 0, item: none})
-                ],
-                inputs: [
-                    Input({quantity: 20, item: glassGreenGoo}), // these are required inputs to get the output
-                    Input({quantity: 12, item: flaskRedGoo}),
-                    Input({quantity: 0, item: none}),
-                    Input({quantity: 0, item: none})
-                ],
-                outputs: [
-                    Output({quantity: 1, item: hammer}) // this is the output that can be crafted given the inputs
-                ],
-                implementation: address(new HammerFactory()),
-                plugin: vm.readFile("src/HammerFactory.js")
-            })
-        );
-    }
+        return BuildingUtils.register(ds, BuildingConfig({
+            id: extensionID,
+            name: "Fountain Of Youth",
+            materials: [
+                Material({quantity: 10, item: glassGreenGoo}), // these are what it costs to construct the factory
+                Material({quantity: 10, item: beakerBlueGoo}),
+                Material({quantity: 10, item: flaskRedGoo}),
+                Material({quantity: 0, item: none})
+            ],
+            inputs: [
+                Input({quantity: 4, item: reallyGreenGoo}), // these are required inputs to get the output
+                Input({quantity: 0, item: none}),
+                Input({quantity: 0, item: none}),
+                Input({quantity: 0, item: none})
+            ],
+            outputs: [
+                Output({quantity: 1, item: elixirItem}) // this is the output that can be crafted given the inputs
+            ],
+            implementation: address(new FountainOfYouth()),
+            plugin: vm.readFile("src/FountainOfYouth.js")
+        }));
+    }    
 }
+
